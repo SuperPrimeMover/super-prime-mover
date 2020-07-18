@@ -13,7 +13,5 @@ fn main() {
 }
 
 fn print_board(board: &Board) {
-    for tile in board.tiles {
-
-    }
+    
 }
