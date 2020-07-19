@@ -1,0 +1,34 @@
+[remap]
+
+importer="texture"
+type="StreamTexture"
+path="res://.import/w_cable.png-27fe49c9e9443ed7326b63e3d8c33405.stex"
+metadata={
+"vram_texture": false
+}
+
+[deps]
+
+source_file="res://assets/cable/w_cable.png"
+dest_files=[ "res://.import/w_cable.png-27fe49c9e9443ed7326b63e3d8c33405.stex" ]
+
+[params]
+
+compress/mode=0
+compress/lossy_quality=0.7
+compress/hdr_mode=0
+compress/bptc_ldr=0
+compress/normal_map=0
+flags/repeat=0
+flags/filter=true
+flags/mipmaps=false
+flags/anisotropic=false
+flags/srgb=2
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/HDR_as_SRGB=false
+process/invert_color=false
+stream=false
+size_limit=0
+detect_3d=true
+svg/scale=1.0

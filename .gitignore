@@ -1,0 +1,6 @@
+target/
+.import/
+*.translation
+export_presets.cfg
+.mono/
+*.kra~
