@@ -51,6 +51,15 @@ pub enum BoardIcon {
 // Signal { orientation: South }
 // Wire { wire1: South, wire2: North }
 //
+
+// TODO: Find a way to make Tile more lightweight.
+// BODY: It'd be nice if Tile was Copy, as that'd make manipulation a lot
+// BODY: easier. The problem is, the Board subtype has a lot of heavy
+// BODY: information in it.
+// BODY:
+// BODY: A potential solution is to have Board contain a simple index to the
+// BODY: subboard, and keep the subboards in a separate vector. The subboards
+// BODY: would never get evicted (as they're necessary to handle undo anyways).
 #[derive(Debug, Clone)]
 pub enum Tile {
     Empty,
@@ -129,23 +138,37 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn get_connections(&self, x: usize, y: usize) -> [&Connection; 4] {
+    pub fn get_tile(&self, x: usize, y: usize) -> Option<&Tile> {
+        self.tiles.get(x, y)
+    }
+
+    pub fn set_tile(&mut self, x: usize, y: usize, tile: Tile) {
+        if let Some(v) = self.tiles.get_mut(x, y) {
+            *v = tile;
+        }
+    }
+
+    pub fn get_connections(&self, x: usize, y: usize) -> [bool; 4] {
         let north_conn = self
             .connections_v
             .get(x, y.wrapping_sub(1))
-            .unwrap_or(&DISCONNECTED_CONNECTION);
+            .unwrap_or(&DISCONNECTED_CONNECTION)
+            .is_connected;
         let south_conn = self
             .connections_v
             .get(x, y)
-            .unwrap_or(&DISCONNECTED_CONNECTION);
+            .unwrap_or(&DISCONNECTED_CONNECTION)
+            .is_connected;
         let west_conn = self
             .connections_h
             .get(x.wrapping_sub(1), y)
-            .unwrap_or(&DISCONNECTED_CONNECTION);
+            .unwrap_or(&DISCONNECTED_CONNECTION)
+            .is_connected;
         let east_conn = self
             .connections_h
             .get(x, y)
-            .unwrap_or(&DISCONNECTED_CONNECTION);
+            .unwrap_or(&DISCONNECTED_CONNECTION)
+            .is_connected;
 
         [north_conn, east_conn, south_conn, west_conn]
     }
@@ -171,13 +194,13 @@ impl Board {
                 tile_x, tile_y
             )),
             Orientation::West => self
-                .connections_v
+                .connections_h
                 .get_mut(tile_x.wrapping_sub(1), tile_y)
                 .expect(&format!(
                     "Tried to connect tile at position {} {} to the west",
                     tile_x, tile_y
                 )),
-            Orientation::East => self.connections_v.get_mut(tile_x, tile_y).expect(&format!(
+            Orientation::East => self.connections_h.get_mut(tile_x, tile_y).expect(&format!(
                 "Tried to connect tile at position {} {} to the east",
                 tile_x, tile_y
             )),
@@ -206,7 +229,7 @@ impl Board {
             })
             .count();
 
-        let need_dc = 0usize.max(current_conns - max_conn);
+        let need_dc = current_conns.saturating_sub(max_conn);
 
         if need_dc > 0 {
             conns.sort_by(|c1, c2| {
@@ -229,7 +252,7 @@ impl Board {
                 }
             }
             /*
-            
+
             Sorter's 0 is North
             FlipFlop's "input" is  North
 
@@ -239,7 +262,7 @@ impl Board {
             let tile = self.tiles.get_mut(x, y).unwrap();
             let new_orientation: Option<Orientation> = match tile {
                 Tile::Sorter{..} | Tile::Flipflop{..} => {
-                    
+
                     None
                 },
                 _ => {
@@ -264,7 +287,7 @@ pub struct Connection {
 static DISCONNECTED_CONNECTION: Connection = Connection::disconnected();
 
 impl Connection {
-    const fn disconnected() -> Connection {
+    pub const fn disconnected() -> Connection {
         Connection {
             timestamp: 0,
             is_connected: false,

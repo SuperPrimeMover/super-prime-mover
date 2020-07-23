@@ -19,19 +19,26 @@ impl<T> Array2D<T> {
     #[inline(always)]
     pub fn get(&self, x: usize, y: usize) -> Option<&T> {
         if x >= self.width { return None }
-        self.inner.get(y * self.width + x)
+        self.inner.get(y.checked_mul(self.width)?.checked_add(x)?)
     }
     #[inline(always)]
     pub fn get_mut(&mut self, x: usize, y: usize) -> Option<&mut T> {
         if x >= self.width { return None }
-        self.inner.get_mut(y * self.width + x)
+        self.inner.get_mut(y.checked_mul(self.width)?.checked_add(x)?)
     }
 
     pub fn get_mut2(&mut self, x1: usize, y1: usize, x2: usize, y2: usize) -> (Option<&mut T>, Option<&mut T>) {
         let slice = &mut self.inner[..];
 
-        let pos1 = y1 * self.width + x1;
-        let pos2 = y2 * self.width + x2;
+        let pos1 = y1.checked_mul(self.width).and_then(|v| v.checked_add(x1));
+        let pos2 = y2.checked_mul(self.width).and_then(|v| v.checked_add(x2));
+
+        let (pos1, pos2) = match (pos1, pos2) {
+            (None, None) => return (None, None),
+            (Some(pos1), None) => return (slice.get_mut(pos1), None),
+            (None, Some(pos2)) => return (None, slice.get_mut(pos2)),
+            (Some(pos1), Some(pos2)) => (pos1, pos2)
+        };
 
         assert_ne!(pos1, pos2);
 
