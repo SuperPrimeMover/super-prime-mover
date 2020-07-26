@@ -13,17 +13,17 @@ pub struct GridTileMap {
 }
 
 const CLEAR: i64 = -1;
-const W_CABLE: i64 = 0;
-const E_CABLE: i64 = 1;
-const H_CABLE: i64 = 2;
-const NE_CABLE: i64 = 3;
-const NW_CABLE: i64 = 4;
-const N_CABLE: i64 = 5;
-const SE_CABLE: i64 = 6;
-const SW_CABLE: i64 = 7;
-const S_CABLE: i64 = 8;
-const UNCONNECTED_CABLE: i64 = 9;
-const V_CABLE: i64 = 10;
+const CABLE_W : i64 = 0;
+const CABLE_E : i64 = 1;
+const CABLE_H : i64 = 2;
+const CABLE_NE : i64 = 3;
+const CABLE_NW : i64 = 4;
+const CABLE_N : i64 = 5;
+const CABLE_SE : i64 = 6;
+const CABLE_SW : i64 = 7;
+const CABLE_S : i64 = 8;
+const CABLE_UNCONNECTED : i64 = 9;
+const CABLE_V: i64 = 10;
 
 #[methods]
 impl GridTileMap {
@@ -50,21 +50,21 @@ impl GridTileMap {
                         owner.set_cell(x, y, CLEAR, false, false, false, Vector2::zero());
                         if let Some(v) = self.last_hover {
                             if v.x as i64 == x && v.y as i64 == y {
-                                owner.set_cell(x, y, UNCONNECTED_CABLE, false, false, false, Vector2::zero());
+                                owner.set_cell(x, y, CABLE_UNCONNECTED, false, false, false, Vector2::zero());
                             }
                         }
                     },
-                    (Some(Tile::Wire { .. }), D, D, D, D) => owner.set_cell(x, y, UNCONNECTED_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), _, D, D, D) => owner.set_cell(x, y, N_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), D, _, D, D) => owner.set_cell(x, y, E_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), D, D, _, D) => owner.set_cell(x, y, S_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), D, D, D, _) => owner.set_cell(x, y, W_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), _, _, D, D) => owner.set_cell(x, y, NE_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), _, D, _, D) => owner.set_cell(x, y, V_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), _, D, D, _) => owner.set_cell(x, y, NW_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), D, _, D, _) => owner.set_cell(x, y, H_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), D, _, _, D) => owner.set_cell(x, y, SE_CABLE, false, false, false, Vector2::zero()),
-                    (Some(Tile::Wire { .. }), D, D, _, _) => owner.set_cell(x, y, SW_CABLE, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), D, D, D, D) => owner.set_cell(x, y, CABLE_UNCONNECTED, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), _, D, D, D) => owner.set_cell(x, y, CABLE_N, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), D, _, D, D) => owner.set_cell(x, y, CABLE_E, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), D, D, _, D) => owner.set_cell(x, y, CABLE_S, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), D, D, D, _) => owner.set_cell(x, y, CABLE_W, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), _, _, D, D) => owner.set_cell(x, y, CABLE_NE, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), _, D, _, D) => owner.set_cell(x, y, CABLE_V, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), _, D, D, _) => owner.set_cell(x, y, CABLE_NW, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), D, _, D, _) => owner.set_cell(x, y, CABLE_H, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), D, _, _, D) => owner.set_cell(x, y, CABLE_SE, false, false, false, Vector2::zero()),
+                    (Some(Tile::Wire { .. }), D, D, _, _) => owner.set_cell(x, y, CABLE_SW, false, false, false, Vector2::zero()),
                     (Some(Tile::Wire { .. }), _, _, _, _) => {
                         // WTF??
                         owner.set_cell(x, y, CLEAR, false, false, false, Vector2::zero());
@@ -100,7 +100,7 @@ impl GridTileMap {
             if event.button_mask().get_bit(GlobalConstants::BUTTON_LEFT as usize - 1) {
                 if let Some(&Tile::Empty) = self.board.get_tile(tile_hover_u.x, tile_hover_u.y) {
                     self.board.set_tile(tile_hover_u.x, tile_hover_u.y, Tile::Wire { slow: false });
-                    owner.set_cellv(tile_hover, UNCONNECTED_CABLE, false, false, false);
+                    owner.set_cellv(tile_hover, CABLE_UNCONNECTED, false, false, false);
                 }
                 self.last_drag.and_then(|v| {
                     let orientation = adjascency(v, tile_hover)?;
@@ -114,7 +114,7 @@ impl GridTileMap {
 
             if let Some(&Tile::Empty) = self.board.get_tile(tile_hover_u.x, tile_hover_u.y) {
                 // TODO: Transparency to signal that it's just a hover.
-                owner.set_cellv(tile_hover, UNCONNECTED_CABLE, false, false, false);
+                owner.set_cellv(tile_hover, CABLE_UNCONNECTED, false, false, false);
                 self.last_hover = Some(tile_hover);
             }
         }
