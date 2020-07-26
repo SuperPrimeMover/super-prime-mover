@@ -234,17 +234,16 @@ impl Board {
         if need_dc > 0 {
             conns.sort_by(|c1, c2| {
                 let p1 = match c1 {
-                    Some(Connection { timestamp, is_connected: false }) => *timestamp,
+                    Some(Connection { timestamp, is_connected: true }) => *timestamp,
                     _ => usize::max_value(),
                 };
                 let p2 = match c2 {
-                    Some(Connection { timestamp, is_connected: false }) => timestamp,
+                    Some(Connection { timestamp, is_connected: true }) => timestamp,
                     _ => &usize::max_value(),
                 };
 
                 p1.cmp(p2)
             });
-
 
             for conn in &mut conns[..need_dc] {
                 if let Some(conn) = conn {
