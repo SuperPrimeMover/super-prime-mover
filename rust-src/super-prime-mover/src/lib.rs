@@ -184,26 +184,17 @@ impl Board {
         let connection = match orientation {
             Orientation::North => self
                 .connections_v
-                .get_mut(tile_x, tile_y.wrapping_sub(1))
-                .expect(&format!(
-                    "Tried to connect tile at position {} {} to the north",
-                    tile_x, tile_y
-                )),
-            Orientation::South => self.connections_v.get_mut(tile_x, tile_y).expect(&format!(
-                "Tried to connect tile at position {} {} to the south",
-                tile_x, tile_y
-            )),
+                .get_mut(tile_x, tile_y.wrapping_sub(1)),
+            Orientation::South => self.connections_v.get_mut(tile_x, tile_y),
             Orientation::West => self
                 .connections_h
-                .get_mut(tile_x.wrapping_sub(1), tile_y)
-                .expect(&format!(
-                    "Tried to connect tile at position {} {} to the west",
-                    tile_x, tile_y
-                )),
-            Orientation::East => self.connections_h.get_mut(tile_x, tile_y).expect(&format!(
-                "Tried to connect tile at position {} {} to the east",
-                tile_x, tile_y
-            )),
+                .get_mut(tile_x.wrapping_sub(1), tile_y),
+            Orientation::East => self.connections_h.get_mut(tile_x, tile_y),
+        };
+
+        let connection = match connection {
+            Some(v) => v,
+            None => return
         };
 
         connection.is_connected = true;
