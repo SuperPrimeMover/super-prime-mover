@@ -9,7 +9,8 @@ use bit_field::*;
 pub struct GridTileMap {
     last_hover: Option<Vector2>,
     last_drag: Option<Vector2>,
-    board: Board
+    board: Board,
+    tile_kind: TileKind
 }
 
 const CLEAR: i64 = -1;
@@ -24,6 +25,11 @@ const CABLE_SW : i64 = 7;
 const CABLE_S : i64 = 8;
 const CABLE_UNCONNECTED : i64 = 9;
 const CABLE_V: i64 = 10;
+const IO_E: i64 = 11;
+const IO_S: i64 = 12;
+const IO_N: i64 = 13;
+const IO_W: i64 = 14;
+const IO_UNCONNECTED: i64 = 15;
 
 #[methods]
 impl GridTileMap {
@@ -31,7 +37,8 @@ impl GridTileMap {
         GridTileMap {
             last_hover: None,
             last_drag: None,
-            board: Board::default()
+            board: Board::default(),
+            tile_kind: TileKind::WIRE,
         }
     }
 
@@ -50,7 +57,7 @@ impl GridTileMap {
                         owner.set_cell(x, y, CLEAR, false, false, false, Vector2::zero());
                         if let Some(v) = self.last_hover {
                             if v.x as i64 == x && v.y as i64 == y {
-                                owner.set_cell(x, y, CABLE_UNCONNECTED, false, false, false, Vector2::zero());
+                                owner.set_cell(x, y, self.tile_kind.tile_num(), false, false, false, Vector2::zero());
                             }
                         }
                     },
@@ -70,6 +77,16 @@ impl GridTileMap {
                         owner.set_cell(x, y, CLEAR, false, false, false, Vector2::zero());
                         godot_print!("WEIRD: {}:{} = {:?}({},{},{},{})", x, y, tile, n, e, s, w);
                     },
+                    (Some(Tile::Input { .. }), D, D, D, D) => owner.set_cell(x, y, IO_UNCONNECTED, false, false, false, Vector2::zero()),
+                    (Some(Tile::Input { .. }), _, D, D, D) => owner.set_cell(x, y, IO_N, false, false, false, Vector2::zero()),
+                    (Some(Tile::Input { .. }), D, _, D, D) => owner.set_cell(x, y, IO_E, false, false, false, Vector2::zero()),
+                    (Some(Tile::Input { .. }), D, D, _, D) => owner.set_cell(x, y, IO_S, false, false, false, Vector2::zero()),
+                    (Some(Tile::Input { .. }), D, D, D, _) => owner.set_cell(x, y, IO_W, false, false, false, Vector2::zero()),
+                    (Some(Tile::Input { .. }), _, _, _, _) => {
+                        // WTF??
+                        owner.set_cell(x, y, CLEAR, false, false, false, Vector2::zero());
+                        godot_print!("WEIRD: {}:{} = {:?}({},{},{},{})", x, y, tile, n, e, s, w);
+                    },
                     _ => ()
                 }
             }
@@ -80,7 +97,12 @@ impl GridTileMap {
     fn _input(&mut self, owner: &TileMap, event: Ref<InputEvent, Shared>) {
         if let Some(event) = event.clone().cast::<InputEventMouseMotion>() {
             let event = unsafe { event.assume_safe() };
-            let tile_hover = owner.world_to_map(event.position());
+            let local_pos = owner
+                .get_global_transform()
+                .inverse().unwrap()
+                .transform_point(event.position().to_point())
+                .to_vector();
+            let tile_hover = owner.world_to_map(local_pos);
             //godot_print!("Hovering on {:?}", tile_hover);
             let tile_hover_u = if let Some(v) = tile_hover.try_cast::<usize>() {
                 v
@@ -114,7 +136,7 @@ impl GridTileMap {
 
             if let Some(&Tile::Empty) = self.board.get_tile(tile_hover_u.x, tile_hover_u.y) {
                 // TODO: Transparency to signal that it's just a hover.
-                owner.set_cellv(tile_hover, CABLE_UNCONNECTED, false, false, false);
+                owner.set_cellv(tile_hover, self.tile_kind.tile_num(), false, false, false);
                 self.last_hover = Some(tile_hover);
             }
         }
@@ -122,10 +144,32 @@ impl GridTileMap {
         // TODO: Touch screen
         if let Some(event) = event.clone().cast::<InputEventMouseButton>() {
             let event = unsafe { event.assume_safe() };
-            let tile_hover = owner.world_to_map(event.position());
-            if event.button_index() == GlobalConstants::BUTTON_LEFT {
+            let local_pos = owner
+                .get_global_transform()
+                .inverse().unwrap()
+                .transform_point(event.position().to_point())
+                .to_vector();
+            let tile_hover = owner.world_to_map(local_pos);
+            let tile_hover_u = if let Some(v) = tile_hover.try_cast::<usize>() {
+                v
+            } else { return };
+            match event.button_index() {
+                GlobalConstants::BUTTON_LEFT => {
+                    self.board.set_tile(tile_hover_u.x, tile_hover_u.y, self.tile_kind.tile_data());
+                    owner.set_cellv(tile_hover, self.tile_kind.tile_num(), false, false, false);
+                },
+                _ => (),
             }
         }
+    }
+
+    #[export]
+    fn _change_tile(&mut self, owner: &TileMap, button_pressed: bool, tile_ty: u8) {
+        godot_print!("Changing tile: {:?}", tile_ty);
+        if tile_ty >= TileKind::MAX {
+            return;
+        }
+        self.tile_kind = TileKind(tile_ty)
     }
 }
 
@@ -142,6 +186,31 @@ fn adjascency(from: Vector2, to: Vector2) -> Option<Orientation> {
         Some(Orientation::West)
     } else {
         None
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TileKind(u8);
+
+impl TileKind {
+    const WIRE: TileKind = TileKind(0);
+    const INPUT: TileKind = TileKind(1);
+    const MAX: u8 = 2;
+
+    pub fn tile_num(&self) -> i64 {
+        match self {
+            &TileKind::WIRE => CABLE_UNCONNECTED,
+            &TileKind::INPUT => IO_UNCONNECTED,
+            _ => CLEAR,
+        }
+    }
+
+    pub fn tile_data(&self) -> Tile {
+        match self {
+            &TileKind::WIRE => Tile::Wire { slow: false },
+            &TileKind::INPUT => Tile::Input { data: vec![] },
+            _ => Tile::Empty,
+        }
     }
 }
 

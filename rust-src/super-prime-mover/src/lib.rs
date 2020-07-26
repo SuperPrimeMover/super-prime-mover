@@ -100,6 +100,12 @@ pub enum Tile {
         contents: Board,
         icon: BoardIcon,
     },
+    Input {
+        data: Vec<u32>,
+    },
+    Output {
+        expected_data: Vec<u32>,
+    },
 }
 
 impl Default for Tile {
@@ -122,6 +128,8 @@ impl Tile {
             Tile::Incrementer { .. } => 4,
             Tile::Deleter => 4,
             Tile::Bridge => 4,
+            Tile::Input { .. } => 1,
+            Tile::Output { .. } => 1,
             _ => 0,
         }
     }
